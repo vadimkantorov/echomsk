@@ -10,8 +10,6 @@ Crawler and parser utilities for Russian talk radio echo.msk.ru
 #personalnovash                  Персонально ваш
 bash programs.sh > programs.txt
 
-
-
 # download and print URLs of all episodes of a given talk show provided its latin name
 bash archive.sh "personalno" > "personalno".txt
 
