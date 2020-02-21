@@ -1,4 +1,6 @@
-Crawler and parser utilities for Russian talk radio echo.msk.ru
+Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
+
+**Important Note:** the parser is brittle and depends on HTML mark-up evolution of http://echo.msk.ru.
 
 ```shell
 # directory "echo.msk.ru" will be created in the working directory to store all HTML files downloaded with wget
