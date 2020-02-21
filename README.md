@@ -4,6 +4,7 @@ Crawler and parser utilities for Russian talk radio echo.msk.ru
 # prints the list of available current and archvied radio shows
 # precomputed programs.txt is available at https://github.com/vadimkantorov/echomsk/releases/download/data/programs.txt
 bash programs.sh > programs.txt
+
 #147 current shows, 301 archived shows
 #Current shows (excerpt):
 #personalno                      Особое мнение
