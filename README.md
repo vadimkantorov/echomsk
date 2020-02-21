@@ -11,8 +11,15 @@ bash programs.sh > programs.txt
 #personalnovash                  Персонально ваш
 
 # downloads and prints URLs of all episodes of a given talk show provided its latin name
+# a directory "echo.msk.ru" will be created in the working directory to store all downloaded HTML files
 bash archive.sh "personalno" > "personalno".txt
 
 # filter the episodes by date in yyyymmdd format
 MINDATE=20160101 MAXDATE=20170101 bash archive.sh "personalno" > "personalno".txt
 ```
+
+### Dependencies
+wget, python3
+
+### License
+MIT
