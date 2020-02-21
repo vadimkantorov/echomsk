@@ -2,6 +2,7 @@
 
 import os
 import re
+import sys
 import json
 import argparse
 import urllib.request
@@ -13,9 +14,10 @@ class EchomskParser(html.parser.HTMLParser):
 		self.archive = archive
 		self.programs = programs
 		self.json = None
-		self.sound = None
 		self.youtube = None
 		self.datetime = None
+		self.sound_seconds = 0
+		self.sound = []
 		self.transcript = []
 		self.speakers = []
 		self.url = [] if archive else ''
@@ -24,6 +26,7 @@ class EchomskParser(html.parser.HTMLParser):
 		self.date = ''
 		self.name = ''
 		self.id = ''
+		self.last_data = ''
 
 	def handle_starttag(self, tag, attrs, months = {'янв' : 1, 'фев' : 2, 'мар' : 3, 'апр' : 4, 'мая' : 5, 'июн' : 6, 'июл' : 7, 'авг' : 8, 'сен' : 9, 'окт' : 10, 'ноя' : 11, 'дек' : 12}):
 		hashtmlattr = lambda k, v: any(k == k_ and v in v_ for k_, v_ in attrs)
@@ -37,16 +40,20 @@ class EchomskParser(html.parser.HTMLParser):
 				self.datetime = gethtmlattr('title')
 
 			elif tag == 'a' and self.datetime and hashtmlattr('class', 'read'):
-				self.url.append(dict(url = 'http://echo.msk.ru/' + gethtmlattr('href').strip('/'), date = parsedatetime(self.datetime)))
-				self.date = None
+				self.url.append(dict(url = 'http://echo.msk.ru' + gethtmlattr('href'), date = parsedatetime(self.datetime)))
+				self.datetime = None
 		
 		elif self.programs:
 			if tag == 'a' and any(k == 'href' and v.startswith('/programs/') and v.count('/') == 3 for k, v in attrs) and not hashtmlattr('href', 'archived'):
-				self.url = gethtmlattr('href')
+				self.url = gethtmlattr('href').rstrip('/')
 
 		else:
-			if tag == 'a' and hashtmlattr('href', '.mp3'):
-				self.sound = gethtmlattr('href')
+			if tag == 'a' and hashtmlattr('href', '.mp3') and any(k == 'class' and v.startswith('load ') for k, v in attrs):
+				self.sound.append(gethtmlattr('href'))
+				duration = self.last_data.strip()
+				colons = duration.count(':')
+				hh, mm, ss = map(int, ('0:0:0' if colons == 0 else '0:' + duration if colons == 1 else duration).split(':'))
+				self.sound_seconds += hh * 60 * 60 + mm * 60 + ss
 
 			elif tag == 'iframe' and hashtmlattr('src', 'youtube.com'):
 				self.youtube = gethtmlattr('src')
@@ -58,33 +65,36 @@ class EchomskParser(html.parser.HTMLParser):
 				self.program = True
 
 	def handle_data(self, data):
-		normalize_speaker = lambda speaker: '.'.join(map(str.capitalize, speaker.split('.')))
+		normalize_speaker = lambda speaker: '.'.join(map(str.capitalize, speaker.replace(' ', '').split('.'))).rstrip(':―')
 		normalize_text = lambda text: ' '.join(line for line in text.strip().replace('\r\n', '\n').split('\n') if not line.isupper())
+		
+		if data.strip():
+			self.last_data = data
 
 		if self.json is True:
 			self.json = json.loads('\n'.join(line for line in data.split('\n') if not line.startswith('//')))
 			self.url = self.json['mainEntityOfPage'].rstrip('/')
-			self.date = self.json['datePublished'].split('T')[0]
+			self.date = int(self.json['datePublished'].split('T')[0].replace('-', ''))
 			self.name = self.json['name'] 
 			self.url_program = os.path.dirname(self.url)
 			self.id = os.path.basename(self.url_program) + '_' + os.path.basename(self.url)
 
-			splitted = re.split(r'([А-Я]\. ?[А-Я][А-Яа-я]+)[:―] ', self.json['articleBody'])
+			splitted = re.split(r'((?:[А-Я]\. ?[А-Я][А-Яа-я]+|[А-Я]{4,})[:―]|СЛУШАТЕЛЬ)', self.json['articleBody'])
+			#splitted = re.split(r'([А-Я]\. ?[А-Я][А-Яа-я]+)[:―] ', self.json['articleBody'])
 			self.transcript = [dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)) for speaker, ref in zip(splitted[1::2], splitted[2::2])]
 			self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
 
 		elif self.program is True and data.strip():
 			self.program = data.strip()
 
-		elif self.url:
+		elif self.programs and self.url:
 			if len(data) > 4:
-				self.program.append(dict(program = os.path.basename(self.url.rstrip('/')), name = data))
+				self.program.append(dict(program = os.path.basename(self.url), name = data))
 			self.url = ''
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--input-path', '-i', required = True)
-	parser.add_argument('--output-path', '-o')
+	parser.add_argument('input_path')
 	parser.add_argument('--programs', action = 'store_true')
 	parser.add_argument('--archive', action = 'store_true')
 	parser.add_argument('--min-date', type = int, nargs = '?')
@@ -103,13 +113,4 @@ if __name__ == '__main__':
 		print('\n'.join('{program: <32}{name}'.format(**p) for p in page.program))
 
 	else:
-		parsed = dict(id = page.id, name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, sound = page.sound, transcript = page.transcript, speakers = page.speakers)
-		
-		if not args.output_path:
-			args.output_path = args.input_path + '.json'
-		if not args.output_path.endswith('.json'):
-			os.makedirs(args.output_path, exist_ok = True)
-			args.output_path = os.path.join(args.output_path, parsed['id'] + '.json')
-
-		json.dump(parsed, open(args.output_path, 'w'), ensure_ascii = Faarchivee, indent = 2, sort_keys = True)
-		print(args.output_path)
+		json.dump(dict(id = page.id, input_path = args.input_path, name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, sound = page.sound, sound_seconds = page.sound_seconds, transcript = page.transcript, speakers = page.speakers), sys.stdout, ensure_ascii = False, indent = 2, sort_keys = True)

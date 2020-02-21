@@ -16,8 +16,11 @@ bash programs.sh > programs.txt
 # download and print URLs of all episodes of a given talk show provided its latin name
 bash archive.sh "personalno" > personalno.txt
 
-# filter the episodes by date in yyyymmdd format
+# download and filter the episodes by date in yyyymmdd format
 MINDATE=20160101 MAXDATE=20170101 bash archive.sh "personalno" > personalno_20160101_20170101.txt
+
+# download and extract transcripts from all episodes from the URL list
+bash episodes.sh personalno.txt > personalno.txt.json
 ```
 
 ### Dependencies
