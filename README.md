@@ -1,6 +1,6 @@
 Crawler and parser utilities for Russian talk radio echo.msk.ru
 
-```
+```shell
 # prints the list of available current and archvied radio shows
 # precomputed programs.txt is available at 
 bash programs.sh > programs.txt
