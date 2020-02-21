@@ -6,7 +6,8 @@ Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
 # directory "echo.msk.ru" will be created in the working directory to store all HTML files downloaded with wget
 
 # print the list of available current and archvied radio shows
-# precomputed programs.txt (147 current shows, 301 archived shows) is available at https://github.com/vadimkantorov/echomsk/releases/download/data/programs.txt
+# precomputed programs.txt (147 current shows, 301 archived shows) is available at:
+# https://github.com/vadimkantorov/echomsk/releases/download/data/programs.txt
 #Current shows (excerpt):
 #personalno                      Особое мнение
 #personalnovash                  Персонально ваш
