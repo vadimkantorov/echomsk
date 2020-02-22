@@ -41,5 +41,5 @@ bash episodes.sh personalno_20000101_20191231.txt > personalno_20000101_20191231
 ### Dependencies
 wget, python3
 
-### License
+### Code License
 MIT
