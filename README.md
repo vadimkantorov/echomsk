@@ -11,7 +11,7 @@ python3 echomsk.py http://echo.msk.ru/programs/personalno/2589698-echo/
 # download and extract episodes from a given archive page
 python3 echomsk.py http://echo.msk.ru/programs/personalno/archive/2/ --archive
 
-# download and extract current shows from a given page
+# download and extract shows from the current shows page
 python3 echomsk.py http://echo.msk.ru/programs/ --programs
 
 
