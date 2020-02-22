@@ -17,7 +17,7 @@ python3 echomsk.py http://echo.msk.ru/programs/ --programs
 
 # CRAWLER USAGE:
 
-# directory "echo.msk.ru" will be created in the working directory to cache all HTML files downloaded with wget
+# directory "./echo.msk.ru" will be created to cache all HTML files downloaded with wget
 
 # print the list of available current and archvied radio shows
 # precomputed programs.txt (147 current shows, 301 archived shows) is available at:
