@@ -23,10 +23,10 @@ MINDATE=20160101 MAXDATE=20170101 bash archive.sh "personalno" > personalno_2016
 bash episodes.sh personalno.txt > personalno.txt.json
 
 # download and extract transcript from a given episode
-python3 echomsk.py https://echo.msk.ru/programs/personalno/2589698-echo/
+python3 echomsk.py http://echo.msk.ru/programs/personalno/2589698-echo/
 
 # download and extract episodes from a given archive page
-python3 echomsk.py https://echo.msk.ru/programs/personalno/archive/2/ --archive
+python3 echomsk.py http://echo.msk.ru/programs/personalno/archive/2/ --archive
 ```
 
 ### Dependencies
