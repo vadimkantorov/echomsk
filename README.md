@@ -3,7 +3,7 @@ Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
 **Important Note:** the parser is brittle and depends on HTML mark-up evolution of http://echo.msk.ru.
 
 ```shell
-# DIRECT USAGE:
+# PARSER USAGE:
 
 # download and extract transcript from a given episode
 python3 echomsk.py http://echo.msk.ru/programs/personalno/2589698-echo/
@@ -15,7 +15,7 @@ python3 echomsk.py http://echo.msk.ru/programs/personalno/archive/2/ --archive
 python3 echomsk.py http://echo.msk.ru/programs/ --programs
 
 
-# AUTOMATION SCRIPTS:
+# CRAWLER USAGE:
 
 # directory "echo.msk.ru" will be created in the working directory to cache all HTML files downloaded with wget
 
