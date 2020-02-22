@@ -8,19 +8,20 @@ Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
 # print the list of available current and archvied radio shows
 # precomputed programs.txt (147 current shows, 301 archived shows) is available at:
 # https://github.com/vadimkantorov/echomsk/releases/download/data/programs.txt
-#Current shows (excerpt):
-#personalno                      Особое мнение
-#personalnovash                  Персонально ваш
+# Current shows (excerpt):
+# personalno                      Особое мнение
+# personalnovash                  Персонально ваш
 bash programs.sh > programs.txt
 
 # download and print URLs of all episodes of a given talk show provided its latin name
-bash archive.sh "personalno" > personalno.txt
+bash archive.sh "victory" > victory.txt
 
 # download and filter episodes by date in yyyymmdd format
-MINDATE=20160101 MAXDATE=20170101 bash archive.sh "personalno" > personalno_20160101_20170101.txt
+MINDATE=20000101 MAXDATE=20191231 bash archive.sh "personalno" > personalno_20000101_20191231.txt
 
 # download and extract transcripts from all episodes from the URL list
-bash episodes.sh personalno.txt > personalno.txt.json
+# Total wall clock time: 1h 16m 21s, downloaded: 7120 files, 1.4G
+bash episodes.sh personalno_20000101_20191231.txt > personalno_20000101_20191231.txt.json
 
 # download and extract transcript from a given episode
 python3 echomsk.py http://echo.msk.ru/programs/personalno/2589698-echo/
