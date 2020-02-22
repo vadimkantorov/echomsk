@@ -26,7 +26,7 @@ bash episodes.sh personalno.txt > personalno.txt.json
 python3 echomsk.py https://echo.msk.ru/programs/personalno/2589698-echo/
 
 # download and extract episodes from a given archive page
-python3 echomsk.py https://echo.msk.ru/programs/personalno/archive/2/
+python3 echomsk.py https://echo.msk.ru/programs/personalno/archive/2/ --archive
 ```
 
 ### Dependencies
