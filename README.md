@@ -17,7 +17,8 @@ bash programs.sh > programs.txt
 bash archive.sh "personalno" > personalno.txt
 
 # download and filter the episodes by date in yyyymmdd format
-MINDATE=20160101 MAXDATE=20170101 bash archive.sh "personalno" > personalno_20160101_20170101.txt
+# https://github.com/vadimkantorov/echomsk/releases/download/data/personalno_20000101_20191231.txt
+MINDATE=20000101 MAXDATE=20191231 bash archive.sh personalno > personalno_20000101_20191231.txt
 
 # download and extract transcripts from all episodes from the URL list
 bash episodes.sh personalno.txt > personalno.txt.json

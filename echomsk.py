@@ -8,6 +8,10 @@ import argparse
 import urllib.request
 import html.parser
 
+#speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ) ?(?:[А-Я]{4,} *[\.:-]|[А-Яа-я]{4,} *[:-]))'
+
+speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я]{4,} *[\.:-](?=[^А-Яа-я])|[А-Я][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+
 class EchomskParser(html.parser.HTMLParser):
 	def __init__(self, archive, programs):
 		super().__init__()
@@ -29,8 +33,8 @@ class EchomskParser(html.parser.HTMLParser):
 		self.last_data = ''
 
 	def handle_starttag(self, tag, attrs, months = {'янв' : 1, 'фев' : 2, 'мар' : 3, 'апр' : 4, 'мая' : 5, 'июн' : 6, 'июл' : 7, 'авг' : 8, 'сен' : 9, 'окт' : 10, 'ноя' : 11, 'дек' : 12}):
-		hashtmlattr = lambda k, v: any(k == k_ and v in v_ for k_, v_ in attrs)
-		gethtmlattr = lambda k: [v_ for k_, v_ in attrs if k_ == k][0]
+		hashtmlattr = lambda k, v, startswith = False: any(k == k_ and (v in (v_ or '') if not startswith else (v_ or '').startswith(v)) for k_, v_ in attrs)
+		gethtmlattr = lambda k: [v_ for k_, v_ in attrs if k_ == k][0] or ''
 		def parsedatetime(datetime):
 			day, month, year, *_ = datetime.replace(',', ' ').split()
 			return int(year) * 1_00_00 + months[month[:3]] * 1_00 + int(day)
@@ -48,7 +52,7 @@ class EchomskParser(html.parser.HTMLParser):
 				self.url = gethtmlattr('href').rstrip('/')
 
 		else:
-			if tag == 'a' and hashtmlattr('href', '.mp3') and any(k == 'class' and v.startswith('load ') for k, v in attrs):
+			if tag == 'a' and hashtmlattr('href', '.mp3') and hashtmlattr('class', 'load ', startswith = True):
 				self.sound.append(gethtmlattr('href'))
 				duration = self.last_data.strip()
 				colons = duration.count(':')
@@ -65,8 +69,8 @@ class EchomskParser(html.parser.HTMLParser):
 				self.program = True
 
 	def handle_data(self, data):
-		normalize_speaker = lambda speaker: '.'.join(map(str.capitalize, speaker.replace(' ', '').split('.'))).rstrip(':―')
-		normalize_text = lambda text: ' '.join(line for line in text.strip().replace('\r\n', '\n').split('\n') if not line.isupper())
+		normalize_text = lambda text: ' '.join(s for line in text.strip().split('\n') if not line.isupper() for s in line.split())
+		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker))).rstrip(': -.').replace('. ', '.')
 		
 		if data.strip():
 			self.last_data = data
@@ -79,8 +83,11 @@ class EchomskParser(html.parser.HTMLParser):
 			self.url_program = os.path.dirname(self.url)
 			self.id = os.path.basename(self.url_program) + '_' + os.path.basename(self.url)
 
-			splitted = re.split(r'((?:[А-Я]\. ?[А-Я][А-Яа-я]+|[А-Я]{4,})[:―]|СЛУШАТЕЛЬ)', self.json['articleBody'])
-			#splitted = re.split(r'([А-Я]\. ?[А-Я][А-Яа-я]+)[:―] ', self.json['articleBody'])
+			replace_table = {ord('ё') : 'е', ord('Ё') : 'Е', ord('\xa0') : ' ', ord('\t') : ' ', ord('\r') : ' ', ord('…') : '...', ord('—') : '-', ord('―') : '-', ord('–') : '-', ord('-') : '-'}
+
+			splitted = re.split(speaker_re, self.json['articleBody'].translate(replace_table).replace('РЕКЛАМА', '').replace('НОВОСТИ', ''))
+			
+
 			self.transcript = [dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)) for speaker, ref in zip(splitted[1::2], splitted[2::2])]
 			self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
 
@@ -113,4 +120,4 @@ if __name__ == '__main__':
 		print('\n'.join('{program: <32}{name}'.format(**p) for p in page.program))
 
 	else:
-		json.dump(dict(id = page.id, input_path = args.input_path, name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, sound = page.sound, sound_seconds = page.sound_seconds, transcript = page.transcript, speakers = page.speakers), sys.stdout, ensure_ascii = False, indent = 2, sort_keys = True)
+		json.dump(dict(id = page.id, input_path = args.input_path.lstrip('./'), name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, sound = page.sound, sound_seconds = page.sound_seconds, transcript = page.transcript, speakers = page.speakers), sys.stdout, ensure_ascii = False, indent = 2, sort_keys = True)
