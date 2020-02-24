@@ -10,7 +10,7 @@ import html.parser
 
 #speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ) ?(?:[А-Я]{4,} *[\.:-]|[А-Яа-я]{4,} *[:-]))'
 
-speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я]{4,} *[\.:-](?=[^А-Яа-я])|[А-Я][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я]{4,} *[\.:-]|[А-Я][а-я]{3,} *[:-](?=[^А-Яа-я])))'
 
 class EchomskParser(html.parser.HTMLParser):
 	def __init__(self, archive, programs):
@@ -70,7 +70,7 @@ class EchomskParser(html.parser.HTMLParser):
 
 	def handle_data(self, data):
 		normalize_text = lambda text: ' '.join(s for line in text.strip().split('\n') if not line.isupper() for s in line.split())
-		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker))).rstrip(': -.').replace('. ', '.')
+		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker))).rstrip(': -.').replace('. ', '.').replace(' .', '.')
 		
 		if data.strip():
 			self.last_data = data
@@ -83,10 +83,11 @@ class EchomskParser(html.parser.HTMLParser):
 			self.url_program = os.path.dirname(self.url)
 			self.id = os.path.basename(self.url_program) + '_' + os.path.basename(self.url)
 
-			replace_table = {ord('ё') : 'е', ord('Ё') : 'Е', ord('\xa0') : ' ', ord('\t') : ' ', ord('\r') : ' ', ord('…') : '...', ord('—') : '-', ord('―') : '-', ord('–') : '-', ord('-') : '-'}
-
-			splitted = re.split(speaker_re, self.json['articleBody'].translate(replace_table).replace('РЕКЛАМА', '').replace('НОВОСТИ', ''))
-			
+			translate = {ord('ё') : 'е', ord('Ё') : 'Е', ord('\xa0') : ' ', ord('\t') : ' ', ord('\r') : ' ', ord('…') : '...', ord('—') : '-', ord('―') : '-', ord('–') : '-', ord('-') : '-'}
+			body = self.json['articleBody'].translate(translate)
+			for replace in ['РЕКЛАМА', 'НОВОСТИ', 'ЗАСТАВКА']:
+				body = body.replace(replace, '')
+			splitted = re.split(speaker_re, body)
 
 			self.transcript = [dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)) for speaker, ref in zip(splitted[1::2], splitted[2::2])]
 			self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
