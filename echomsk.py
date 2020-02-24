@@ -8,9 +8,7 @@ import argparse
 import urllib.request
 import html.parser
 
-#speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ) ?(?:[А-Я]{4,} *[\.:-]|[А-Яа-я]{4,} *[:-]))'
-
-speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я]{4,} *[\.:-]|[А-Я][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
 
 class EchomskParser(html.parser.HTMLParser):
 	def __init__(self, archive, programs):
@@ -37,7 +35,7 @@ class EchomskParser(html.parser.HTMLParser):
 		gethtmlattr = lambda k: [v_ for k_, v_ in attrs if k_ == k][0] or ''
 		def parsedatetime(datetime):
 			day, month, year, *_ = datetime.replace(',', ' ').split()
-			return int(year) * 1_00_00 + months[month[:3]] * 1_00 + int(day)
+			return int(year) * 100 * 100 + months[month[:3]] * 100 + int(day)
 
 		if self.archive:
 			if tag == 'span' and hashtmlattr('class', 'datetime') and hashtmlattr('title', ''):
