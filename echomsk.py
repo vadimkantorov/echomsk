@@ -10,7 +10,7 @@ import html.parser
 
 #speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
 
-speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА|\W\s+(?=[А-Я]{4,}:)) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА|(?=\S)\W\s+(?=[А-Я]{4,}:)) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
 
 class EchomskParser(html.parser.HTMLParser):
 	def __init__(self, archive, programs):
@@ -87,15 +87,24 @@ class EchomskParser(html.parser.HTMLParser):
 			body = self.json['articleBody'].translate(translate)
 			for replace in ['РЕКЛАМА', 'НОВОСТИ', 'ЗАСТАВКА']:
 				body = body.replace(replace, '')
-			splitted = re.split(speaker_re, body)
+			for replace in ['НЕРАЗБОРЧИВО', 'НЕРЗБ', 'НЕРАЗБ']:
+				body = body.replace(replace, 'НРЗБ')
 
-			for speaker, ref in zip(splitted[1::2], splitted[2::2]):
-				if self.transcript and not speaker[0].isalpha():
-					self.transcript[-1]['ref'] += speaker[0]
-					speaker = speaker[1:]
-				self.transcript.append(dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)))
+			for i in range(2):
+				splitted = re.split(speaker_re, body)
+				self.transcript = []
+				for speaker, ref in zip(splitted[1::2], splitted[2::2]):
+					if self.transcript and not speaker[0].isalpha():
+						self.transcript[-1]['ref'] += speaker[0]
+						speaker = speaker[1:]
+					self.transcript.append(dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)))
+				self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
+				for speaker in self.speakers:
+					if '.' in speaker:
+						body = body.replace(speaker.replace('.', ' '), speaker).replace(speaker[2:], speaker)
+						speaker = speaker.upper()
+						body = body.replace(speaker.replace('.', ' '), speaker).replace(speaker[2:], speaker)
 
-			self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
 
 		elif self.program is True and data.strip():
 			self.program = data.strip()
