@@ -8,7 +8,9 @@ import argparse
 import urllib.request
 import html.parser
 
-speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+#speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+
+speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА|\W\s+(?=[А-Я]{4,}:)) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
 
 class EchomskParser(html.parser.HTMLParser):
 	def __init__(self, archive, programs):
@@ -68,7 +70,7 @@ class EchomskParser(html.parser.HTMLParser):
 
 	def handle_data(self, data):
 		normalize_text = lambda text: ' '.join(s for line in text.strip().split('\n') if not line.isupper() for s in line.split())
-		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker))).rstrip(': -.').replace('. ', '.').replace(' .', '.')
+		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker.strip()))).rstrip(': -.').replace('. ', '.').replace(' .', '.')
 		
 		if data.strip():
 			self.last_data = data
@@ -87,7 +89,12 @@ class EchomskParser(html.parser.HTMLParser):
 				body = body.replace(replace, '')
 			splitted = re.split(speaker_re, body)
 
-			self.transcript = [dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)) for speaker, ref in zip(splitted[1::2], splitted[2::2])]
+			for speaker, ref in zip(splitted[1::2], splitted[2::2]):
+				if self.transcript and not speaker[0].isalpha():
+					self.transcript[-1]['ref'] += speaker[0]
+					speaker = speaker[1:]
+				self.transcript.append(dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)))
+
 			self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
 
 		elif self.program is True and data.strip():
