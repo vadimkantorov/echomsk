@@ -37,8 +37,12 @@ MINDATE=20000101 MAXDATE=20191231 bash archive.sh "personalno" > personalno_2000
 
 # download and extract transcripts from all episodes from the URL list
 # Total wall clock time: 1h 16m 21s, downloaded: 7120 files, 1.4G
+# https://github.com/vadimkantorov/echomsk/releases/download/data/personalno_20000101_20191231.txt.json.gz
 bash episodes.sh personalno_20000101_20191231.txt > personalno_20000101_20191231.txt.json
 ```
+
+### Data Copyright
+[Echo of Moscow Radio](http://echo.msk.ru) has all rights reserved on the released corpus. If you are using the released corpus, you must make sure yourself you are abiding all relevant copyright laws.
 
 ### Dependencies
 python3 (for parser), wget (for crawler) 
