@@ -8,11 +8,15 @@ import argparse
 import urllib.request
 import html.parser
 
-speaker_re = r'''
+website_root = 'http://echo.msk.ru'
+
+copyright = f'© Радиостанция "Эхо Москвы", {website_root}. При полном или частичном использовании материалов ссылка на "Эхо Москвы" обязательна.'
+
+speaker_regexp = r'''
 (?:(?<=[^А-Я])|\b)
 (
 	СЛУШАТЕЛЬ(?:НИЦА)?(?:[А-Я ]* *[\.:-]|[А-Я-][а-я]{3,} *[:-])|
-	[А-Я] *\.+ *(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,}[А-Яа-я]* *[:-])
+	[А-Я] *\.+ *(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,}[А-Яа-я]* *[:-] )
 )
 '''.replace('\n', '').replace('\t', '')
 
@@ -24,7 +28,7 @@ prepend_space = ['СЛУШАТЕЛЬ']
 			
 normalize_chars = {ord(k) : v for k, v in {'»' : '"', '«' : '"', '‘' : "'", '’' : "'", '“' : '"', '”' : '"', '„' : '"', 'ё' : 'е', 'Ё' : 'Е', '\xa0' : ' ', '\t' : ' ', '\r' : ' ', '…' : '...', '—' : '-', '―' : '-', '–' : '-', '-' : '-', '—' : '-', '⁄' : '/', '°' : 'о', '¸' : ',', '`' : "`"}.items()}
 
-replace_other = {'Кара-Мурза Младший' : 'КАРАМУРЗАМЛАДШИЙ', 'КАРА-МУРЗА МЛАДШИЙ' : 'КАРАМУРЗАМЛАДШИЙ', 'Кара-Мурза' : 'КАРАМУРЗА', '[процентов]' : '%', 'процентов' : '%'}
+replace_other = {'[процентов]' : '%', 'процентов' : '%', 'Кара-Мурза Младший' : 'КАРАМУРЗАМЛАДШИЙ', 'КАРА-МУРЗА МЛАДШИЙ' : 'КАРАМУРЗАМЛАДШИЙ', 'Кара-Мурза' : 'КАРАМУРЗА', 'СДУШАТЕЛЬ' : 'СЛУШАТЕЛЬ', 'СЛУШАТЬЕЛЬ' : 'СЛУШАТЕЛЬ'}
 
 months = {'янв' : 1, 'фев' : 2, 'мар' : 3, 'апр' : 4, 'мая' : 5, 'июн' : 6, 'июл' : 7, 'авг' : 8, 'сен' : 9, 'окт' : 10, 'ноя' : 11, 'дек' : 12}
 
@@ -52,7 +56,7 @@ class EchomskParser(html.parser.HTMLParser):
 		self.last_data = ''
 
 	def handle_starttag(self, tag, attrs):
-		hashtmlattr = lambda k, v, startswith = False: any(k == k_ and (v in (v_ or '') if not startswith else (v_ or '').startswith(v)) for k_, v_ in attrs)
+		hashtmlattr = lambda k, v, startswith = False, proper = False: any(k == k_ and (v in (v_ or '') if not startswith else ((v_ or '').startswith(v) and (not proper or len(v_ or '') > len(v)) )) for k_, v_ in attrs)
 		gethtmlattr = lambda k: [v_ for k_, v_ in attrs if k_ == k][0] or ''
 		def parsedatetime(datetime):
 			day, month, year, *_ = datetime.replace(',', ' ').split()
@@ -63,7 +67,7 @@ class EchomskParser(html.parser.HTMLParser):
 				self.datetime = gethtmlattr('title')
 
 			elif tag == 'a' and self.datetime and hashtmlattr('class', 'read'):
-				self.url.append(dict(url = 'http://echo.msk.ru' + gethtmlattr('href'), date = parsedatetime(self.datetime)))
+				self.url.append(dict(url = website_root + gethtmlattr('href'), date = parsedatetime(self.datetime)))
 				self.datetime = None
 		
 		elif self.programs:
@@ -90,7 +94,7 @@ class EchomskParser(html.parser.HTMLParser):
 			elif tag == 'a' and hashtmlattr('class', 'name_prog'):
 				self.program = True
 
-			elif tag == 'a' and hashtmlattr('href', '/contributors/') and len(gethtmlattr('href')) > len('/contributors/') and self.contributor is not False:
+			elif tag == 'a' and self.contributor is not False and (hashtmlattr('href', '/contributors/', startswith = True, proper = True) or hashtmlattr('href', '/guests/', startswith = True, proper = True)) and gethtmlattr('href').split('/')[-2].isdigit():
 				self.contributor = gethtmlattr('href')
 
 			elif tag == 'div' and hashtmlattr('class', 'multimedia'):
@@ -122,7 +126,7 @@ class EchomskParser(html.parser.HTMLParser):
 				body = body.replace(src, tgt)
 
 			for i in range(2):
-				splitted = re.split(speaker_re, body)
+				splitted = re.split(speaker_regexp, body)
 				self.transcript = []
 				for speaker, ref in zip(splitted[1::2], splitted[2::2]):
 					if self.transcript and not speaker[0].isalpha():
@@ -135,11 +139,15 @@ class EchomskParser(html.parser.HTMLParser):
 					if '.' in speaker:
 						speaker = speaker.upper()
 						a, b = speaker.split('.')
-						body = body.replace(a + '.' + b, ' ' + speaker).replace(a + '. ' + b, ' ' + speaker)
-						body = body.replace(b[0] + b, b).replace(speaker, ' ' + speaker).replace(a + '. ' + a, a + '.  ' + a).replace(a + '.' + a, a + '.  ' + a)
-						body = body.replace(b, speaker)
-						body = body.replace(speaker + ' ', speaker + ': ')
-						body = body.replace(a + speaker, speaker).replace(a + '.' + speaker, speaker).replace(a + '. ' + speaker, speaker)
+						body = body.replace(speaker, ' ' + speaker).replace(a + '. ' + b, ' ' + speaker) # add space before (spaceful) speaker
+						body = body.replace(b[0] + b, b) # doubled first letter of last name
+
+						body = body.replace(a + '. ' + a, a + '.  ' + a).replace(a + '.' + a, a + '.  ' + a) # preparing for auto-inserting first name
+						body = body.replace(b, speaker) # adding first name
+						body = body.replace(speaker + ' ', speaker + ': ') # adding colon
+						body = body.replace(a + speaker, speaker) # doubled first letter of first name
+
+						body = body.replace(a + '.' + speaker, speaker).replace(a + '. ' + speaker, speaker) # collapsing doubled first letter with dot present
 
 		elif self.program is True and data.strip():
 			self.program = data.strip()
@@ -152,7 +160,7 @@ class EchomskParser(html.parser.HTMLParser):
 		elif self.contributor and data.strip():
 			names = data.split()
 			speaker = names[0][0] + '.' + ''.join(names[1:])
-			self.contributors[speaker] = 'http://echo.msk.ru' + self.contributor
+			self.contributors[speaker] = website_root + self.contributor
 			self.contributor = None
 
 if __name__ == '__main__':
@@ -176,4 +184,4 @@ if __name__ == '__main__':
 		print('\n'.join('{program: <32}{name}'.format(**p) for p in page.program))
 
 	else:
-		json.dump(dict(id = page.id, input_path = args.input_path.lstrip('./'), name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, rutube = page.rutube, sound = page.sound, sound_seconds = page.sound_seconds, transcript = page.transcript, speakers = page.speakers, contributors = page.contributors), sys.stdout, ensure_ascii = False, indent = 2, sort_keys = True)
+		json.dump(dict(copyright = copyright, id = page.id, input_path = args.input_path.lstrip('./'), name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, rutube = page.rutube, sound = page.sound, sound_seconds = page.sound_seconds, transcript = page.transcript, speakers = page.speakers, contributors = page.contributors), sys.stdout, ensure_ascii = False, indent = 2, sort_keys = True)
