@@ -2,7 +2,7 @@ set -e
 
 URLLIST=$1
 
-#wget --no-verbose --no-clobber --html-extension --force-directories -i "$URLLIST"
+wget --no-verbose --no-clobber --html-extension --force-directories -i "$URLLIST"
 
 COMMA=
 echo "["
