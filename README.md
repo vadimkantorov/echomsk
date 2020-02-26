@@ -1,7 +1,8 @@
-Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
+### Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
 
 **Important Note:** the parser is brittle and depends on HTML mark-up evolution of http://echo.msk.ru.
 
+### Usage
 ```shell
 # PARSER USAGE:
 
