@@ -8,9 +8,25 @@ import argparse
 import urllib.request
 import html.parser
 
-#speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+speaker_re = r'''
+(?:(?<=[^А-Я])|\b)
+(
+	СЛУШАТЕЛЬ(?:НИЦА)?(?:[А-Я ]* *[\.:-]|[А-Я-][а-я]{3,} *[:-])|
+	[А-Я] *\.+ *(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,}[А-Яа-я]* *[:-])
+)
+'''.replace('\n', '').replace('\t', '')
 
-speaker_re = r'(?:\b|[^А-Я])((?:[А-Я] *\.|СЛУШАТЕЛЬ|СЛУШАТЕЛЬНИЦА|(?=\S)\W\s+(?=[А-Я]{4,}:)) ?(?:[А-Я-]{4,} *[\.:-]|[А-Я-][а-я]{3,} *[:-](?=[^А-Яа-я])))'
+remove = ['РЕКЛАМА', 'НОВОСТИ', 'НВОСТИ', 'ЗАСТАВКА', '&gt;', 'СМЕЕТСЯ', 'СМЕЮТСЯ', 'ПРЕРВАЛСЯ ЗВУК']
+
+unk = ['НРЗБ', 'НЕРАЗБОРЧИВО', 'НЕРЗБ', 'НЕРАЗБ']
+
+prepend_space = ['СЛУШАТЕЛЬ']
+			
+normalize_chars = {'«' : '"', '»' : '"', 'ё' : 'е', 'Ё' : 'Е', '\xa0' : ' ', '\t' : ' ', '\r' : ' ', '…' : '...', '—' : '-', '―' : '-', '–' : '-', '-' : '-'}
+
+replace_other = {'Кара-Мурза Младший' : 'КАРАМУРЗАМЛАДШИЙ', 'КАРА-МУРЗА МЛАДШИЙ' : 'КАРАМУРЗАМЛАДШИЙ', 'Кара-Мурза' : 'КАРАМУРЗА'}
+
+months = {'янв' : 1, 'фев' : 2, 'мар' : 3, 'апр' : 4, 'мая' : 5, 'июн' : 6, 'июл' : 7, 'авг' : 8, 'сен' : 9, 'окт' : 10, 'ноя' : 11, 'дек' : 12}
 
 class EchomskParser(html.parser.HTMLParser):
 	def __init__(self, archive, programs):
@@ -32,7 +48,7 @@ class EchomskParser(html.parser.HTMLParser):
 		self.id = ''
 		self.last_data = ''
 
-	def handle_starttag(self, tag, attrs, months = {'янв' : 1, 'фев' : 2, 'мар' : 3, 'апр' : 4, 'мая' : 5, 'июн' : 6, 'июл' : 7, 'авг' : 8, 'сен' : 9, 'окт' : 10, 'ноя' : 11, 'дек' : 12}):
+	def handle_starttag(self, tag, attrs):
 		hashtmlattr = lambda k, v, startswith = False: any(k == k_ and (v in (v_ or '') if not startswith else (v_ or '').startswith(v)) for k_, v_ in attrs)
 		gethtmlattr = lambda k: [v_ for k_, v_ in attrs if k_ == k][0] or ''
 		def parsedatetime(datetime):
@@ -69,8 +85,8 @@ class EchomskParser(html.parser.HTMLParser):
 				self.program = True
 
 	def handle_data(self, data):
-		normalize_text = lambda text: ' '.join(s for line in text.strip().split('\n') if not line.isupper() for s in line.split())
-		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker.strip()))).rstrip(': -.').replace('. ', '.').replace(' .', '.')
+		normalize_text = lambda text: ' '.join(s for line in text.strip().split('\n') if not line.isupper() for s in line.split()).lstrip('- ')
+		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker.strip().replace('..', '.')))).rstrip(': -.').replace(' ', '') 
 		
 		if data.strip():
 			self.last_data = data
@@ -83,12 +99,15 @@ class EchomskParser(html.parser.HTMLParser):
 			self.url_program = os.path.dirname(self.url)
 			self.id = os.path.basename(self.url_program) + '_' + os.path.basename(self.url)
 
-			translate = {ord('ё') : 'е', ord('Ё') : 'Е', ord('\xa0') : ' ', ord('\t') : ' ', ord('\r') : ' ', ord('…') : '...', ord('—') : '-', ord('―') : '-', ord('–') : '-', ord('-') : '-'}
-			body = self.json['articleBody'].translate(translate)
-			for replace in ['РЕКЛАМА', 'НОВОСТИ', 'ЗАСТАВКА']:
+			body = self.json['articleBody'].translate({ord(src) : tgt for src, tgt in normalize_chars.items()})
+			for replace in remove:
 				body = body.replace(replace, '')
-			for replace in ['НЕРАЗБОРЧИВО', 'НЕРЗБ', 'НЕРАЗБ']:
-				body = body.replace(replace, 'НРЗБ')
+			for replace in unk:
+				body = body.replace(replace, unk[0])
+			for replace in prepend_space:
+				body = body.replace(replace, ' ' + replace)
+			for src, tgt in replace_other.items():
+				body = body.replace(src, tgt)
 
 			for i in range(2):
 				splitted = re.split(speaker_re, body)
@@ -99,12 +118,16 @@ class EchomskParser(html.parser.HTMLParser):
 						speaker = speaker[1:]
 					self.transcript.append(dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)))
 				self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
-				for speaker in self.speakers:
+				
+				for speaker in (self.speakers if i == 0 else []):
 					if '.' in speaker:
-						body = body.replace(speaker.replace('.', ' '), speaker).replace(speaker[2:], speaker)
 						speaker = speaker.upper()
-						body = body.replace(speaker.replace('.', ' '), speaker).replace(speaker[2:], speaker)
-
+						a, b = speaker.split('.')
+						body = body.replace(a + '.' + b, ' ' + speaker).replace(a + '. ' + b, ' ' + speaker)
+						body = body.replace(b[0] + b, b).replace(speaker, ' ' + speaker).replace(a + '. ' + a, a + '.  ' + a).replace(a + '.' + a, a + '.  ' + a)
+						body = body.replace(b, speaker)
+						body = body.replace(speaker + ' ', speaker + ': ')
+						body = body.replace(a + speaker, speaker).replace(a + '.' + speaker, speaker).replace(a + '. ' + speaker, speaker)
 
 		elif self.program is True and data.strip():
 			self.program = data.strip()
