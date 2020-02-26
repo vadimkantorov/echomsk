@@ -16,15 +16,15 @@ speaker_re = r'''
 )
 '''.replace('\n', '').replace('\t', '')
 
-remove = ['РЕКЛАМА', 'НОВОСТИ', 'НВОСТИ', 'ЗАСТАВКА', '&gt;', 'СМЕЕТСЯ', 'СМЕЮТСЯ', 'ПРЕРВАЛСЯ ЗВУК']
+remove = ['РЕКЛАМА', 'НОВОСТИ', 'НВОСТИ', 'ЗАСТАВКА', '&gt;', 'СМЕЕТСЯ', 'СМЕЮТСЯ', 'ПРЕРВАЛСЯ ЗВУК', '[Смеется]', '[смеется]']
 
-unk = ['НРЗБ', 'НЕРАЗБОРЧИВО', 'НЕРЗБ', 'НЕРАЗБ']
+unk = ['НРЗБ', 'НЕРАЗБОРЧИВО', 'НЕРЗБ', 'НЕРАЗБ', '[неразборчиво]', 'неразборчиво', '[невнятно]', 'невнятно']
 
 prepend_space = ['СЛУШАТЕЛЬ']
 			
-normalize_chars = {'«' : '"', '»' : '"', 'ё' : 'е', 'Ё' : 'Е', '\xa0' : ' ', '\t' : ' ', '\r' : ' ', '…' : '...', '—' : '-', '―' : '-', '–' : '-', '-' : '-'}
+normalize_chars = {ord(k) : v for k, v in {'»' : '"', '«' : '"', '‘' : "'", '’' : "'", '“' : '"', '”' : '"', '„' : '"', 'ё' : 'е', 'Ё' : 'Е', '\xa0' : ' ', '\t' : ' ', '\r' : ' ', '…' : '...', '—' : '-', '―' : '-', '–' : '-', '-' : '-', '—' : '-', '⁄' : '/', '°' : 'о', '¸' : ',', '`' : "`"}.items()}
 
-replace_other = {'Кара-Мурза Младший' : 'КАРАМУРЗАМЛАДШИЙ', 'КАРА-МУРЗА МЛАДШИЙ' : 'КАРАМУРЗАМЛАДШИЙ', 'Кара-Мурза' : 'КАРАМУРЗА'}
+replace_other = {'Кара-Мурза Младший' : 'КАРАМУРЗАМЛАДШИЙ', 'КАРА-МУРЗА МЛАДШИЙ' : 'КАРАМУРЗАМЛАДШИЙ', 'Кара-Мурза' : 'КАРАМУРЗА', '[процентов]' : '%', 'процентов' : '%'}
 
 months = {'янв' : 1, 'фев' : 2, 'мар' : 3, 'апр' : 4, 'мая' : 5, 'июн' : 6, 'июл' : 7, 'авг' : 8, 'сен' : 9, 'окт' : 10, 'ноя' : 11, 'дек' : 12}
 
@@ -35,7 +35,10 @@ class EchomskParser(html.parser.HTMLParser):
 		self.programs = programs
 		self.json = None
 		self.youtube = None
+		self.rutube = None
 		self.datetime = None
+		self.contributor = None
+		self.contributors = {}
 		self.sound_seconds = 0
 		self.sound = []
 		self.transcript = []
@@ -77,12 +80,21 @@ class EchomskParser(html.parser.HTMLParser):
 
 			elif tag == 'iframe' and hashtmlattr('src', 'youtube.com'):
 				self.youtube = gethtmlattr('src')
+			
+			elif tag == 'embed' and hashtmlattr('src', 'rutube.ru'):
+				self.rutube = gethtmlattr('src')
 
 			elif tag == 'script' and hashtmlattr('type', 'application/ld+json'):
 				self.json = True
 			
 			elif tag == 'a' and hashtmlattr('class', 'name_prog'):
 				self.program = True
+
+			elif tag == 'a' and hashtmlattr('href', '/contributors/') and len(gethtmlattr('href')) > len('/contributors/') and self.contributor is not False:
+				self.contributor = gethtmlattr('href')
+
+			elif tag == 'div' and hashtmlattr('class', 'multimedia'):
+				self.contributor = False
 
 	def handle_data(self, data):
 		normalize_text = lambda text: ' '.join(s for line in text.strip().split('\n') if not line.isupper() for s in line.split()).lstrip('- ')
@@ -95,11 +107,11 @@ class EchomskParser(html.parser.HTMLParser):
 			self.json = json.loads('\n'.join(line for line in data.split('\n') if not line.startswith('//')))
 			self.url = self.json['mainEntityOfPage'].rstrip('/')
 			self.date = int(self.json['datePublished'].split('T')[0].replace('-', ''))
-			self.name = self.json['name'] 
+			self.name = self.json['name'].translate(normalize_chars) 
 			self.url_program = os.path.dirname(self.url)
 			self.id = os.path.basename(self.url_program) + '_' + os.path.basename(self.url)
 
-			body = self.json['articleBody'].translate({ord(src) : tgt for src, tgt in normalize_chars.items()})
+			body = self.json['articleBody'].translate(normalize_chars)
 			for replace in remove:
 				body = body.replace(replace, '')
 			for replace in unk:
@@ -137,6 +149,12 @@ class EchomskParser(html.parser.HTMLParser):
 				self.program.append(dict(program = os.path.basename(self.url), name = data))
 			self.url = ''
 
+		elif self.contributor and data.strip():
+			names = data.split()
+			speaker = names[0][0] + '.' + ''.join(names[1:])
+			self.contributors[speaker] = 'http://echo.msk.ru' + self.contributor
+			self.contributor = None
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('input_path')
@@ -158,4 +176,4 @@ if __name__ == '__main__':
 		print('\n'.join('{program: <32}{name}'.format(**p) for p in page.program))
 
 	else:
-		json.dump(dict(id = page.id, input_path = args.input_path.lstrip('./'), name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, sound = page.sound, sound_seconds = page.sound_seconds, transcript = page.transcript, speakers = page.speakers), sys.stdout, ensure_ascii = False, indent = 2, sort_keys = True)
+		json.dump(dict(id = page.id, input_path = args.input_path.lstrip('./'), name = page.name, url = page.url, date = page.date, program = page.program, url_program = page.url_program, youtube = page.youtube, rutube = page.rutube, sound = page.sound, sound_seconds = page.sound_seconds, transcript = page.transcript, speakers = page.speakers, contributors = page.contributors), sys.stdout, ensure_ascii = False, indent = 2, sort_keys = True)
