@@ -54,7 +54,7 @@ python3 echomsk.py https://echo.msk.ru/programs/personalno/2594534-echo
   "copyright": "© Радиостанция \"Эхо Москвы\", https://echo.msk.ru. При полном или частичном использовании материалов ссылка на \"Эхо Москвы\" обязательна.",
   "date": 20200226,
   "id": "personalno_2594534-echo",
-  "input_path": "index.html",
+  "input_path": "https://echo.msk.ru/programs/personalno/2594534-echo",
   "name": "Интервью / Кирилл Рогов",
   "program": "Особое мнение",
   "rutube": null,
