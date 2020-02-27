@@ -41,6 +41,48 @@ MINDATE=20000101 MAXDATE=20191231 bash archive.sh "personalno" > personalno_2000
 bash episodes.sh personalno_20000101_20191231.txt > personalno_20000101_20191231.txt.json
 ```
 
+### Example parser output
+```shell
+python3 echomsk.py https://echo.msk.ru/programs/personalno/2594534-echo
+```
+```
+{
+  "contributors": {
+    "А.Нарышкин": "https://echo.msk.ru/contributors/717722-echo/",
+    "К.Рогов": "https://echo.msk.ru/guests/762/"
+  },
+  "copyright": "© Радиостанция \"Эхо Москвы\", https://echo.msk.ru. При полном или частичном использовании материалов ссылка на \"Эхо Москвы\" обязательна.",
+  "date": 20200226,
+  "id": "personalno_2594534-echo",
+  "input_path": "index.html",
+  "name": "Интервью / Кирилл Рогов",
+  "program": "Особое мнение",
+  "rutube": null,
+  "sound": [
+    "https://cdn.echo.msk.ru/snd/2020-02-26-osoboe-1908.mp3"
+  ],
+  "sound_seconds": 2236,
+  "speakers": [
+    "А.Нарышкин",
+    "К.Рогов"
+  ],
+  "transcript": [
+    {
+      "ref": "Всем добрый вечер, в эфире \"Эха\" Москвы программа \"Особое мнение\". Меня зовут Алексей Нарышкин, напротив меня Кирилл Рогов, я вас приветствую.",
+      "speaker": "А.Нарышкин"
+    },
+    {
+      "ref": "Добрый вечер.",
+      "speaker": "К.Рогов"
+    },
+    ...
+  ],
+  "url": "https://echo.msk.ru/programs/personalno/2594534-echo",
+  "url_program": "https://echo.msk.ru/programs/personalno",
+  "youtube": "https://www.youtube.com/embed/zTIYZXVUGfw"
+}
+```
+
 ### Data Copyright
 Examples of crawled data are provided in [repo releases](https://github.com/vadimkantorov/echomsk/releases/tag/data) for research purposes only. [Echo of Moscow Radio](http://echo.msk.ru) has all rights reserved on [released data](https://github.com/vadimkantorov/echomsk/releases/tag/data). If you are using the released corpus, you must make sure yourself you are abiding all relevant copyright laws.
 
