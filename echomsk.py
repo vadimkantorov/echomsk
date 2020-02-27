@@ -41,7 +41,7 @@ class EchomskParser(html.parser.HTMLParser):
 		self.youtube = None
 		self.rutube = None
 		self.datetime = None
-		self.contributor = None
+		self.contributor = False
 		self.contributors = {}
 		self.sound_seconds = 0
 		self.sound = []
@@ -94,7 +94,7 @@ class EchomskParser(html.parser.HTMLParser):
 			elif tag == 'a' and hashtmlattr('class', 'name_prog'):
 				self.program = True
 
-			elif tag == 'a' and self.contributor is not False and (hashtmlattr('href', '/contributors/', startswith = True, proper = True) or hashtmlattr('href', '/guests/', startswith = True, proper = True)) and gethtmlattr('href').split('/')[-2].isdigit():
+			elif tag == 'a' and self.contributor is not False and (hashtmlattr('href', '/contributors/', startswith = True, proper = True) or hashtmlattr('href', '/guests/', startswith = True, proper = True)):
 				self.contributor = gethtmlattr('href')
 
 			elif tag == 'div' and hashtmlattr('class', 'multimedia'):
@@ -106,6 +106,9 @@ class EchomskParser(html.parser.HTMLParser):
 		
 		if data.strip():
 			self.last_data = data
+		
+		if 'Время выхода в эфир' in data:
+			self.contributor = True
 
 		if self.json is True:
 			self.json = json.loads('\n'.join(line for line in data.split('\n') if not line.startswith('//')))
@@ -157,11 +160,12 @@ class EchomskParser(html.parser.HTMLParser):
 				self.program.append(dict(program = os.path.basename(self.url), name = data))
 			self.url = ''
 
-		elif self.contributor and data.strip():
+		elif isinstance(self.contributor, str) and data.strip():
 			names = data.split()
 			speaker = names[0][0] + '.' + ''.join(names[1:])
 			self.contributors[speaker] = website_root + self.contributor
 			self.contributor = None
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
