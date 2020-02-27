@@ -42,7 +42,7 @@ bash episodes.sh personalno_20000101_20191231.txt > personalno_20000101_20191231
 ```
 
 ### Data Copyright
-Crawled data are provided in [repo releases](https://github.com/vadimkantorov/echomsk/releases/tag/data) for research purposes only. [Echo of Moscow Radio](http://echo.msk.ru) has all rights reserved on [released data](https://github.com/vadimkantorov/echomsk/releases/tag/data). If you are using the released corpus, you must make sure yourself you are abiding all relevant copyright laws.
+Examples of crawled data are provided in [repo releases](https://github.com/vadimkantorov/echomsk/releases/tag/data) for research purposes only. [Echo of Moscow Radio](http://echo.msk.ru) has all rights reserved on [released data](https://github.com/vadimkantorov/echomsk/releases/tag/data). If you are using the released corpus, you must make sure yourself you are abiding all relevant copyright laws.
 
 ### Dependencies
 python3 (for parser), wget (for crawler) 
