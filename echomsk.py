@@ -8,7 +8,7 @@ import argparse
 import urllib.request
 import html.parser
 
-website_root = 'http://echo.msk.ru'
+website_root = 'https://echo.msk.ru'
 
 copyright = f'© Радиостанция "Эхо Москвы", {website_root}. При полном или частичном использовании материалов ссылка на "Эхо Москвы" обязательна.'
 
