@@ -26,19 +26,19 @@ python3 echomsk.py http://echo.msk.ru/programs/ --programs
 # Current shows (excerpt):
 # personalno                      Особое мнение
 # personalnovash                  Персонально ваш
-bash echomsk.sh PROGRAMS > programs.txt
+bash echomsk.sh LIST > programs.txt
 
 # download and print URLs of all episodes of a given talk show provided its latin name
-bash archive.sh "victory" > victory.txt
+bash echomsk.sh LIST "victory" > victory.txt
 
 # download and filter the episodes by date in yyyymmdd format
 # https://github.com/vadimkantorov/echomsk/releases/download/data/personalno_20000101_20191231.txt
-MINDATE=20000101 MAXDATE=20191231 bash echomsk.sh ARCHIVE "personalno" > personalno_20000101_20191231.txt
+MINDATE=20000101 MAXDATE=20191231 bash echomsk.sh LIST "personalno" > personalno_20000101_20191231.txt
 
 # download and extract transcripts from all episodes from the URL list
 # Total wall clock time: 1h 16m 21s, downloaded: 7120 files, 1.4G
 # https://github.com/vadimkantorov/echomsk/releases/download/data/personalno_20000101_20191231.txt.json.gz
-bash echomsk.sh EPISODES personalno_20000101_20191231.txt > personalno_20000101_20191231.txt.json
+bash echomsk.sh RETR personalno_20000101_20191231.txt > personalno_20000101_20191231.txt.json
 ```
 
 ### Example parser output
