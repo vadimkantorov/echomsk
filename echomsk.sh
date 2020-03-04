@@ -3,26 +3,26 @@ set -e
 CMD=$1
 
 case $CMD in
-	PROGRAMS)
-		wget --quiet --html-extension --force-directories http://echo.msk.ru/programs http://echo.msk.ru/programs/archived
-
-		printf "Current shows:\n\n"
-		python3 echomsk.py echo.msk.ru/programs.html --programs
-
-		printf "\nArchived shows:\n\n"
-		python3 echomsk.py echo.msk.ru/programs/archived.html --programs
-		;;
-
-	ARCHIVE)
+	LIST)
 		PROG=$2
-		wget --no-verbose --no-clobber --no-parent --recursive --level inf -I /programs/$PROG/archive/ echo.msk.ru/programs/$PROG/index.html
+		if [[ $PROG ]]; then
+			wget --no-verbose --no-clobber --no-parent --recursive --level inf -I /programs/$PROG/archive/ echo.msk.ru/programs/$PROG/index.html
 
-		for p in echo.msk.ru/programs/$PROG/index.html echo.msk.ru/programs/$PROG/archive/*/index.html; do
-			python3 echomsk.py "$p" --archive --min-date $MINDATE --max-date $MAXDATE
-		done | sort | uniq
+			for p in echo.msk.ru/programs/$PROG/index.html echo.msk.ru/programs/$PROG/archive/*/index.html; do
+				python3 echomsk.py "$p" --archive --min-date $MINDATE --max-date $MAXDATE
+			done | sort | uniq
+		else
+			wget --quiet --html-extension --force-directories http://echo.msk.ru/programs http://echo.msk.ru/programs/archived
+
+			printf "Current shows:\n\n"
+			python3 echomsk.py echo.msk.ru/programs.html --programs
+
+			printf "\nArchived shows:\n\n"
+			python3 echomsk.py echo.msk.ru/programs/archived.html --programs
+		fi
 		;;
 				
-	EPISODES)
+	RETR)
 		URLLIST=$2
 		wget --no-verbose --no-clobber --html-extension --force-directories -i "$URLLIST"
 
