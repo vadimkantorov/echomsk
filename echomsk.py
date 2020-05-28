@@ -12,6 +12,8 @@ website_root = 'https://echo.msk.ru'
 
 copyright = f'© Радиостанция "Эхо Москвы", {website_root}. При полном или частичном использовании материалов ссылка на "Эхо Москвы" обязательна.'
 
+contributor_flag = 'Время выхода в эфир'
+
 speaker_regexp = r'''
 (?:(?<=[^А-Я])|\b)
 (
@@ -20,7 +22,7 @@ speaker_regexp = r'''
 )
 '''.replace('\n', '').replace('\t', '')
 
-remove = ['РЕКЛАМА', 'НОВОСТИ', 'НВОСТИ', 'ЗАСТАВКА', '&gt;', 'СМЕЕТСЯ', 'СМЕЮТСЯ', 'ПРЕРВАЛСЯ ЗВУК', '[Смеется]', '[смеется]']
+remove = ['РЕКЛАМА', 'НОВОСТИ', 'НВОСТИ', 'ЗАСТАВКА', 'ПРЕРВАЛСЯ ЗВУК', '&gt;', 'СМЕЕТСЯ', 'СМЕЮТСЯ', '[Смеется]', '[смеется]']
 
 unk = ['НРЗБ', 'НЕРАЗБОРЧИВО', 'НЕРЗБ', 'НЕРАЗБ', '[неразборчиво]', 'неразборчиво', '[невнятно]', 'невнятно']
 
@@ -66,7 +68,7 @@ class EchomskParser(html.parser.HTMLParser):
 			if tag == 'span' and hashtmlattr('class', 'datetime') and hashtmlattr('title', ''):
 				self.datetime = gethtmlattr('title')
 
-			elif tag == 'a' and self.datetime and hashtmlattr('class', 'read'):
+			elif tag == 'a' and self.datetime and (hashtmlattr('class', 'read') or hashtmlattr('class', 'view')):
 				self.url.append(dict(url = website_root + gethtmlattr('href'), date = parsedatetime(self.datetime)))
 				self.datetime = None
 		
@@ -102,12 +104,12 @@ class EchomskParser(html.parser.HTMLParser):
 
 	def handle_data(self, data):
 		normalize_text = lambda text: ' '.join(s for line in text.strip().split('\n') if not line.isupper() for s in line.split()).lstrip('- ')
-		normalize_speaker = lambda speaker: ''.join(map(str.capitalize, re.split(r'([ \.])', speaker.strip().replace('..', '.')))).rstrip(': -.').replace(' ', '') 
+		normalize_speaker = lambda speaker: None if not speaker else ''.join(map(str.capitalize, re.split(r'([ \.])', speaker.strip().replace('..', '.')))).rstrip(': -.').replace(' ', '') 
 		
 		if data.strip():
 			self.last_data = data
 		
-		if 'Время выхода в эфир' in data:
+		if contributor_flag in data:
 			self.contributor = True
 
 		if self.json is True:
@@ -118,7 +120,7 @@ class EchomskParser(html.parser.HTMLParser):
 			self.url_program = os.path.dirname(self.url)
 			self.id = os.path.basename(self.url_program) + '_' + os.path.basename(self.url)
 
-			body = self.json['articleBody'].translate(normalize_chars)
+			body = self.json.get('articleBody', '').translate(normalize_chars)
 			for replace in remove:
 				body = body.replace(replace, '')
 			for replace in unk:
@@ -130,13 +132,20 @@ class EchomskParser(html.parser.HTMLParser):
 
 			for i in range(2):
 				splitted = re.split(speaker_regexp, body)
+				if len(splitted) == 1 and splitted[0]:
+					splitted.insert(0, '')
+				elif not splitted[0]:
+					del splitted[0]
+
 				self.transcript = []
-				for speaker, ref in zip(splitted[1::2], splitted[2::2]):
-					if self.transcript and not speaker[0].isalpha():
+				for speaker, ref in zip(splitted[0::2], splitted[1::2]):
+					# remove first 
+					if self.transcript and speaker and not speaker[0].isalpha():
 						self.transcript[-1]['ref'] += speaker[0]
 						speaker = speaker[1:]
+
 					self.transcript.append(dict(speaker = normalize_speaker(speaker), ref = normalize_text(ref)))
-				self.speakers = list(sorted(set(t['speaker'] for t in self.transcript)))
+				self.speakers = list(sorted(filter(bool, set(t['speaker'] for t in self.transcript))))
 				
 				for speaker in (self.speakers if i == 0 else []):
 					if '.' in speaker:
@@ -177,7 +186,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	
 	page = EchomskParser(args.archive, args.programs)
-	page.feed(urllib.request.urlopen(args.input_path).read().decode() if 'http' in args.input_path else open(args.input_path).read())
+	page.feed(urllib.request.urlopen(args.input_path).read().decode() if 'http' in args.input_path else open(args.input_path).read() if os.path.exists(args.input_path) else '<html />')
 	
 	if args.archive:
 		program = args.input_path.split('/programs/')[1].split('/')[0]

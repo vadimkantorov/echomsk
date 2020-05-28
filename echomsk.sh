@@ -13,12 +13,9 @@ case $CMD in
 			done | sort | uniq
 		else
 			wget --quiet --html-extension --force-directories http://echo.msk.ru/programs http://echo.msk.ru/programs/archived
-
-			printf "Current shows:\n\n"
-			python3 echomsk.py echo.msk.ru/programs.html --programs
-
-			printf "\nArchived shows:\n\n"
-			python3 echomsk.py echo.msk.ru/programs/archived.html --programs
+			
+			python3 echomsk.py echo.msk.ru/programs.html --programs          | sed -e 's/^/current_show /'
+			python3 echomsk.py echo.msk.ru/programs/archived.html --programs | sed -e 's/^/archive_show /'
 		fi
 		;;
 				
@@ -30,7 +27,9 @@ case $CMD in
 		echo "["
 		while read url; do 
 			echo $COMMA
-			python3 echomsk.py ./${url#"http://"}index.html
+			url=${url#"http://"}
+			url=${url#"https://"}
+			python3 echomsk.py ./${url}index.html
 			COMMA=,
 		done < "$URLLIST"
 		echo "]"

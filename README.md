@@ -23,9 +23,9 @@ python3 echomsk.py http://echo.msk.ru/programs/ --programs
 # print the list of available current and archvied radio shows
 # precomputed programs.txt (147 current shows, 301 archived shows) is available at:
 # https://github.com/vadimkantorov/echomsk/releases/download/data/programs.txt
-# Current shows (excerpt):
-# personalno                      Особое мнение
-# personalnovash                  Персонально ваш
+# excerpt:
+# current_show personalno                      Особое мнение
+# current_show personalnovash                  Персонально ваш
 bash echomsk.sh LIST > programs.txt
 
 # download and print URLs of all episodes of a given talk show provided its latin name
