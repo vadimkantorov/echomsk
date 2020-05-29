@@ -25,13 +25,29 @@ case $CMD in
 
 		COMMA=
 		echo "["
-		while read url; do 
+		while read p; do 
 			echo $COMMA
-			url=${url#"http://"}
-			url=${url#"https://"}
-			python3 echomsk.py ./${url}index.html
+			p=${p#"http://"}
+			p=${p#"https://"}
+			python3 echomsk.py "./${p}index.html"
 			COMMA=,
 		done < "$URLLIST"
 		echo "]"
+		;;
+
+	SPEAKERS)
+		JSONDIR=$2
+		for p in $JSONDIR/*.json; do
+			echo $p
+			python3 echomsk.py "$p" --speakers
+		done #| sort | uniq
+		;;
+	
+	CONTRIBUTORS)
+		JSONDIR=$2
+		for p in $JSONDIR/*.json; do
+			echo $p
+			python3 echomsk.py "$p" --contributors
+		done #| sort | uniq
 		;;
 esac
