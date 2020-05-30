@@ -1,6 +1,6 @@
 ### Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
 
-**Important Note:** the parser is extremely brittle and will very likely fail when the layout of http://echo.msk.ru evolves. The parser worked OK on 2020-06-01.
+**Important Note:** the parser is extremely brittle and will very likely fail when the HTML layout of http://echo.msk.ru evolves. The parser worked OK on 2020-06-01.
 
 ### Usage
 ```shell
@@ -14,7 +14,6 @@ python3 echomsk.py http://echo.msk.ru/programs/personalno/archive/2/ --archive
 python3 echomsk.py http://echo.msk.ru/programs/ --programs
 
 # directory "./echo.msk.ru" will be created to cache all HTML files downloaded with wget
-
 # print the list of available current and archvied radio shows
 # precomputed programs.txt (147 current shows, 301 archived shows) is available at:
 # https://github.com/vadimkantorov/echomsk/releases/download/data/programs.txt
@@ -36,6 +35,7 @@ MINDATE=20000101 MAXDATE=20191231 bash echomsk.sh LIST "personalno" > personalno
 bash echomsk.sh RETR personalno_20000101_20191231.txt > personalno_20000101_20191231.txt.json
 
 # download and print all URLs for all programs and dump speakers
+# https://github.com/vadimkantorov/echomsk/releases/download/data/dump_20000101_20191231.tar.gz
 export MINDATE=20000101
 export MAXDATE=20191231
 OUT=dump_${MINDATE}_${MAXDATE}
@@ -44,7 +44,7 @@ for PROG in $(cut -d' ' -f2 programs.txt); do
 	bash echomsk.sh RETR $OUT/${PROG}.txt > $OUT/${PROG}.json 
 done
 tar -czf $OUT.tar.gz $OUT
-ls $OUT/*.json | xargs -n1 python3 echomsk.py --speakers | sort | uniq  > speakers_${MINDATE}_${MAXDATE}.txt
+# ls $OUT/*.json | xargs -n1 python3 echomsk.py --speakers | sort | uniq  > speakers_${MINDATE}_${MAXDATE}.txt
 ```
 
 ### Example parser output
