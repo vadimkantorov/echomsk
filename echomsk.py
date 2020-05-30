@@ -170,42 +170,17 @@ class EchomskParser(html.parser.HTMLParser):
 			for src, tgt in replace_other.items():
 				body = body.replace(src, tgt)
 
-			for i in range(1):
-				splitted = re.split(speaker_regexp, body)
-				self.transcript = []
-				speaker = None
-				for ref in filter(lambda s: bool(s.strip()), splitted):
-					if re.match(speaker_regexp, ref):
-						speaker = ref
-					else:
-						self.transcript.append(dict(speaker = normalize_speaker(speaker), ref = normalize_ref(ref)))
-						speaker = None
+			splitted = re.split(speaker_regexp, body)
+			self.transcript = []
+			speaker = None
+			for ref in filter(lambda s: bool(s.strip()), splitted):
+				if re.match(speaker_regexp, ref):
+					speaker = ref
+				else:
+					self.transcript.append(dict(speaker = normalize_speaker(speaker), ref = normalize_ref(ref)))
+					speaker = None
 
-				
-				#for speaker, ref in zip(splitted[0::2], splitted[1::2]):
-				#	if self.transcript and speaker and not speaker[0].isalpha():
-				#		self.transcript[-1]['ref'] += speaker[0]
-				#		speaker = speaker[1:]
-
-				self.speakers = list(sorted(filter(bool, set(t['speaker'] for t in self.transcript))))
-
-				#for speaker in (self.speakers if i == 0 else []):
-				#	speaker = speaker.upper()
-				#	body = body.replace(speaker, ' ' + speaker + ': ')
-
-
-				#	if '.' in speaker:
-				#		speaker = speaker.upper()
-				#		a, b = speaker.split('.')
-				#		body = body.replace(speaker, ' ' + speaker).replace(a + '. ' + b, ' ' + speaker) # add space before (spaceful) speaker
-				#		body = body.replace(b[0] + b, b) # doubled first letter of last name
-
-				#		body = body.replace(a + '. ' + a, a + '.  ' + a).replace(a + '.' + a, a + '.  ' + a) # preparing for auto-inserting first name
-				#		body = body.replace(b, speaker) # adding first name
-				#		body = body.replace(speaker + ' ', speaker + ': ') # adding colon
-				#		body = body.replace(a + speaker, speaker) # doubled first letter of first name
-
-				#		body = body.replace(a + '.' + speaker, speaker).replace(a + '. ' + speaker, speaker) # collapsing doubled first letter with dot present
+			self.speakers = list(sorted(filter(bool, set(t['speaker'] for t in self.transcript))))
 
 		elif self.program is True and data.strip():
 			self.program = data.strip()
@@ -215,7 +190,7 @@ class EchomskParser(html.parser.HTMLParser):
 				self.program.append(dict(program = os.path.basename(self.url), name = data))
 			self.url = ''
 
-		elif isinstance(self.contributor, str) and len(data.strip()) > 1 and (self.hashtmlattr('class', 'name') or '/contributors/' in self.contributor):
+		elif isinstance(self.contributor, str) and len(data.strip()) > 1 and (self.hashtmlattr('class', 'name') or ('/contributors/' in self.contributor) and not self.hashtmlattr('class', 'lite')):
 			speaker = normalize_speaker(data)
 			self.contributors[speaker] = website_root + self.contributor
 			self.contributor = None
@@ -227,7 +202,6 @@ if __name__ == '__main__':
 	parser.add_argument('--programs', action = 'store_true')
 	parser.add_argument('--archive', action = 'store_true')
 	parser.add_argument('--speakers', action = 'store_true')
-	parser.add_argument('--contributors', action = 'store_true')
 	parser.add_argument('--min-date', type = int, nargs = '?')
 	parser.add_argument('--max-date', type = int, nargs = '?')
 	args = parser.parse_args()
@@ -242,9 +216,6 @@ if __name__ == '__main__':
 	
 	if args.speakers:
 		print('\n'.join(sorted(set(speaker for p in page for speaker in p['speakers']))))
-	
-	elif args.contributors:
-		print('\n'.join(sorted(set(contributor for p in page for contributor in p['contributors']))))
 	
 	elif args.archive:
 		program = args.input_path.split('/programs/')[1].split('/')[0]

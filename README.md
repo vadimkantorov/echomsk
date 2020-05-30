@@ -1,11 +1,9 @@
 ### Crawler and parser utilities for Russian talk radio http://echo.msk.ru.
 
-**Important Note:** the parser is extremely brittle and will very likely fail when the layout of http://echo.msk.ru evolves. The parser worked OK on 2020-02-27.
+**Important Note:** the parser is extremely brittle and will very likely fail when the layout of http://echo.msk.ru evolves. The parser worked OK on 2020-06-01.
 
 ### Usage
 ```shell
-# PARSER USAGE:
-
 # download and extract transcript from a given episode
 python3 echomsk.py http://echo.msk.ru/programs/personalno/2589698-echo/
 
@@ -14,9 +12,6 @@ python3 echomsk.py http://echo.msk.ru/programs/personalno/archive/2/ --archive
 
 # download and extract shows from the current shows page
 python3 echomsk.py http://echo.msk.ru/programs/ --programs
-
-
-# CRAWLER USAGE:
 
 # directory "./echo.msk.ru" will be created to cache all HTML files downloaded with wget
 
@@ -39,6 +34,17 @@ MINDATE=20000101 MAXDATE=20191231 bash echomsk.sh LIST "personalno" > personalno
 # Total wall clock time: 1h 16m 21s, downloaded: 7120 files, 1.4G
 # https://github.com/vadimkantorov/echomsk/releases/download/data/personalno_20000101_20191231.txt.json.gz
 bash echomsk.sh RETR personalno_20000101_20191231.txt > personalno_20000101_20191231.txt.json
+
+# download and print all URLs for all programs and dump speakers
+export MINDATE=20000101
+export MAXDATE=20191231
+OUT=dump_${MINDATE}_${MAXDATE}
+for PROG in $(cut -d' ' -f2 programs.txt); do
+	bash echomsk.sh LIST $PROG > $OUT/${PROG}.txt
+	bash echomsk.sh RETR $OUT/${PROG}.txt > $OUT/${PROG}.json 
+done
+tar -czf $OUT.tar.gz $OUT
+ls $OUT/*.json | xargs -n1 python3 echomsk.py --speakers | sort | uniq  > speakers_${MINDATE}_${MAXDATE}.txt
 ```
 
 ### Example parser output

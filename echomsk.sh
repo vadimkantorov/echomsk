@@ -21,7 +21,7 @@ case $CMD in
 				
 	RETR)
 		URLLIST=$2
-		wget --no-verbose --no-clobber --html-extension --force-directories -i "$URLLIST"
+		wget --no-verbose --no-clobber --html-extension --force-directories --content-on-error -i "$URLLIST" || true
 
 		COMMA=
 		echo "["
@@ -36,18 +36,9 @@ case $CMD in
 		;;
 
 	SPEAKERS)
-		JSONDIR=$2
-		for p in $JSONDIR/*.json; do
-			echo $p
+		for p in $2; do
 			python3 echomsk.py "$p" --speakers
-		done #| sort | uniq
+		done | sort | uniq
 		;;
 	
-	CONTRIBUTORS)
-		JSONDIR=$2
-		for p in $JSONDIR/*.json; do
-			echo $p
-			python3 echomsk.py "$p" --contributors
-		done #| sort | uniq
-		;;
 esac
