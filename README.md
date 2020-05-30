@@ -23,7 +23,7 @@ python3 echomsk.py http://echo.msk.ru/programs/ --programs
 bash echomsk.sh LIST > programs.txt
 
 # download and print URLs of all episodes of a given talk show provided its latin name
-bash echomsk.sh LIST "victory" > victory.txt
+bash echomsk.sh LIST victory > victory.txt
 
 # download and filter the episodes by date in yyyymmdd format
 # https://github.com/vadimkantorov/echomsk/releases/download/data/personalno_20000101_20191231.txt
